@@ -22,7 +22,17 @@ from vllm.entrypoints.openai.protocol import (
 )
 from vllm.entrypoints.utils import cli_env_setup, load_aware_call, with_cancellation
 from vllm.logger import init_logger
-from vllm.utils import FlexibleArgumentParser
+
+try:
+    from vllm.utils import FlexibleArgumentParser
+except ImportError:
+    try:
+        from vllm.entrypoints.openai.api_server import FlexibleArgumentParser
+    except ImportError:
+        # 最后的兜底方案：如果都找不到，使用原生的
+        import argparse
+
+        FlexibleArgumentParser = argparse.ArgumentParser
 from vllm.v1.engine import EngineCoreOutput, EngineCoreOutputs, FinishReason
 from vllm.v1.engine.core import EngineCore
 from vllm.v1.metrics.stats import LoRARequestStates

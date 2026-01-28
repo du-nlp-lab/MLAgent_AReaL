@@ -8,8 +8,14 @@ if TYPE_CHECKING:
     from transformers.processing_utils import ProcessorMixin
     from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 
-VALID_DATASETS = ["gsm8k", "clevr_count_70k", "geometry3k", "hh-rlhf", "torl_data"]
-
+VALID_DATASETS = [
+    "gsm8k",
+    "clevr_count_70k",
+    "geometry3k",
+    "hh-rlhf",
+    "torl_data",
+    "dsbench",
+]
 logger = logging.getLogger("Dataset")
 
 
@@ -29,6 +35,16 @@ def _get_custom_dataset(
             path=path,
             split=split,
             tokenizer=tokenizer,
+            max_length=max_length,
+            **kwargs,
+        )
+    elif "dsbench" in path and type == "rl":
+        from .dsbench import get_dsbench_modeling_rl_dataset
+
+        return get_dsbench_modeling_rl_dataset(
+            path=path,
+            split=split,
+            processor=processor,  # 传递 processor 用于 token 长度过滤
             max_length=max_length,
             **kwargs,
         )
