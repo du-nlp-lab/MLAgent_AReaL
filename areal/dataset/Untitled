@@ -1,0 +1,53 @@
+import os
+import json
+import importlib.util
+from areal.utils import logging
+
+logger = logging.getLogger("MLRCDataset")
+
+def get_mlrc_bench_dataset(repo_path, processor):
+    """
+    Scans MLRC-Bench/MLAgentBench/benchmarks_base/ for research tasks.
+    Reads baseline metrics from constants.py.
+    """
+    base_dir = os.path.join(repo_path, "MLAgentBench/benchmarks_base")
+    constants_path = os.path.join(repo_path, "MLAgentBench/constants.py")
+    
+    # Dynamic loading of constants.py to get target metrics
+    spec = importlib.util.spec_from_file_location("constants", constants_path)
+    constants = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(constants)
+
+    tasks = []
+    # Loop through task folders (e.g., 'spaceship-titanic', 'house-prices')
+    for task_name in os.listdir(base_dir):
+        task_path = os.path.join(base_dir, task_name)
+        env_dir = os.path.join(task_path, "env") # Visible to Agent
+        
+        if os.path.isdir(env_dir):
+            # Target values often stored in constants.py as BASELINE_PERFORMANCE
+            target_metric = constants.BASELINE_PERFORMANCE.get(task_name, 0.0)
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a professional ML researcher. Improve the baseline model provided."
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Task Name: {task_name}\n"
+                        f"Baseline Performance to beat: {target_metric}\n"
+                        f"Initial files are in your workspace. You must modify files in the repository to achieve better results."
+                    )
+                }
+            ]
+            
+            tasks.append({
+                "task_name": task_name,
+                "messages": messages,
+                "target_results": {"score": target_metric},
+                "work_dir": env_dir # This becomes the sandbox root
+            })
+            
+    return tasks
